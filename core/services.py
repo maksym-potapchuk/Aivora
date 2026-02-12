@@ -6,6 +6,22 @@ from .models import User
 from django.urls import reverse
 from rest_framework_simplejwt.tokens import RefreshToken
 from functools import wraps
+from django.core.mail import send_mail
+from django.conf import settings
+from typing import Union
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+
+
+def send_email_core(subject: str, message: str, recipient: Union[list, str]):
+    send_mail(
+            subject=subject,
+            message=message,
+            from_email="settings.EMAIL_HOST_USER",
+            recipient_list= recipient if isinstance(recipient, list) else [recipient],
+            auth_password=settings.EMAIL_HOST_PASSWORD,
+            fail_silently=False
+        )
 
 
 class TokenManager:
@@ -17,9 +33,15 @@ class TokenManager:
         uid64 = urlsafe_base64_encode(force_bytes(self.user.uuid))
         return token, uid64
 
-    def send_email(self) -> str:
+    def send_email(self, user_email: str) -> str:
         token, uid64 = self.create_token()
-        return self.get_link(token, uid64)
+        generated_link = self.get_link(token, uid64)
+
+        send_email_core(
+            subject="AIvora link confirmation",
+            message=f"To confirm your actions please clink the following link {generated_link}",
+            recipient=user_email,
+        )
 
     def get_link(self, token, uid64) -> str:
         raise NotImplementedError("Define get_link in subclass")
@@ -49,15 +71,23 @@ class PasswordReset(TokenManager):
             kwargs={'uid64': uid64, 'token': token}
         )
 
-        return {'detail': f'Click on the link to confirm action:\n {link}'}
+        return f"{settings.DOMAIN}{link}"
     
     @classmethod
     @base64_decoder
     def reset_password(cls, user: User, new_password):
-        user.set_password(new_password)
-        user.save()
+        try:
+            validate_password(new_password, user)
+        except ValidationError as e:
+            return {
+                "detail": "Password validation failed",
+                "errors": e.messages
+            }
 
-        return {'detail': 'Password was reset succesfully!'}
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+
+        return {'detail': 'Password was reset successfully!'}
 
 
 class MailConfirmation(TokenManager):
@@ -67,14 +97,14 @@ class MailConfirmation(TokenManager):
             kwargs={'uid64': uid64, 'token': token}
         )
     
-        return {'detail': f'Click on the link to confirm action:\n {link}'}
+        return f"{settings.DOMAIN}{link}"
     
     @classmethod
     @base64_decoder
     def verify_email(cls, user: User) -> dict:
         user.is_active = True
         user.is_email_verified = True
-        user.save()
+        user.save(update_fields=["is_active", "is_email_verified"])
 
         return {'detail': 'Email confirmed', 'status': 200}
         

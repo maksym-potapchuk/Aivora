@@ -7,7 +7,7 @@ from .choice import UserRoleChoice, UserRankChoice
 class CustomUserManager(BaseUserManager):
     def create_user(self, first_name, last_name, email, password, country, **kwargs):
         if not email:
-            raise ValueError("Provide Email filed")
+            raise ValueError("Provide Email field")
 
         email = self.normalize_email(email=email)
 
@@ -34,32 +34,32 @@ class CustomUserManager(BaseUserManager):
 
 class User(AbstractBaseUser, AbstractTimeStampModel, PermissionsMixin):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
-    first_name = models.CharField(max_length=16, verbose_name="Імя")
-    last_name = models.CharField(max_length=16, verbose_name="Призвіще")
-    email = models.EmailField(max_length=64, unique=True, verbose_name="Пошта")
-    phone = models.CharField(max_length=10, blank=True, null=True, verbose_name="Номер телефону")
-    country = models.CharField(max_length=32, verbose_name="Країна")
-    city = models.CharField(max_length=32, verbose_name="Місто", blank=True, null=True)
+    first_name = models.CharField(max_length=32, verbose_name="First name")
+    last_name = models.CharField(max_length=32, verbose_name="Second name")
+    email = models.EmailField(max_length=64, unique=True, verbose_name="Email")
+    phone = models.CharField(max_length=13, blank=True, null=True, verbose_name="Phone number", unique=True)
+    country = models.CharField(max_length=32, verbose_name="Country")
+    city = models.CharField(max_length=32, verbose_name="City/Town", blank=True, null=True)
     photo = models.ImageField(upload_to="profiles_img/", blank=True, null=True)
-    appointment = models.CharField(verbose_name="Посада", blank=True, null=True)
+    appointment = models.CharField(verbose_name="Appointment", blank=True, null=True)
     rank = models.CharField(
-        verbose_name="Ранг",
+        verbose_name="Rank",
         choices=UserRankChoice.choices,
         default=UserRankChoice.NOOB,
         blank=True, null=True
     )
-    experiense = models.PositiveIntegerField(verbose_name="Бали досвіду", default=0)
+    experience = models.PositiveIntegerField(verbose_name="Experience points", default=0)
     role = models.CharField(
-        verbose_name="Роль",
+        verbose_name="Role",
         choices=UserRoleChoice.choices,
         default=UserRoleChoice.STUDENT,
     )
-    is_email_verified = models.BooleanField(default=False, verbose_name="Верифікована пошта")
-    last_logined = models.DateTimeField(null=True, blank=True, verbose_name="В останнє залогінено")
+    is_email_verified = models.BooleanField(default=False, verbose_name="Veryfied Email")
+    last_logined = models.DateTimeField(null=True, blank=True, verbose_name="Last logined at")
 
     is_active = models.BooleanField(
-        default=False, verbose_name="Активувати користувача",
-        help_text="Дозволити користувачу вхід в обліковий запис. Якщо False користувач буде заблокований"
+        default=False, verbose_name="Is active user",
+        help_text="If true allows user login into system"
     )
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)

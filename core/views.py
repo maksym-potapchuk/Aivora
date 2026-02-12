@@ -3,22 +3,23 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from .serializers import UserSerializer, ChangePasswordSerializer
 from .models import User
-from .services import MailConfirmation, PasswordReset
+from .services import MailConfirmation, PasswordReset, send_email_core
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
+import time
+
 
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        print(request.data.get('email'), request.data.get('password'))
         user: User = authenticate(
             username = request.data.get('email'),
             password = request.data.get('password')
         )
 
         if not user:
-            return Response({'detail': 'User does\'nt exist'}, status=401)
+            return Response({'detail': 'User doesn\'t exist'}, status=401)
 
         if not user.is_email_verified:
             return Response({'detail': 'Email not verified'}, status=403)
@@ -27,6 +28,12 @@ class LoginView(APIView):
             return Response({'detail': 'User is deactivated'}, status=403)
         
         refresh = RefreshToken.for_user(user)
+
+        send_email_core(
+            subject="New login into accout",
+            message=f"Deat {user.first_name}.\nWe found out that was new login into you account at {time.strftime("%H:%M")} GMT+0",
+            recipient=user.email
+        )
 
         return Response({
             'access': str(refresh.access_token),
@@ -38,17 +45,16 @@ class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        print(request.data)
         serializer = UserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = serializer.save()
         mail_conf = MailConfirmation(user)
-        link = mail_conf.send_email()
+        mail_conf.send_email(request.data.get('email'))
 
         return Response(
-            {'detail': f'Check your email to verify account:\\\ {link}'},
-            status=status.HTTP_201_CREATED
+            {'detail': 'Register confirmation was sended to email box'},
+            status=status.HTTP_200_OK
         )
     
 
@@ -86,11 +92,14 @@ class PasswordResetView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        user: User = User.objects.get(email=request.data.get('email'))
+        try:
+            user: User = User.objects.get(email=request.data.get('email'))
+        except Exception:
+            return {'details': 'User does\'nt exist'}
         password_manager = PasswordReset(user)
-        link = password_manager.send_email()
+        password_manager.send_email(user.email)
 
-        return Response(link, status=200)
+        return Response({'detail': 'Password reset confirmation was sended to email box'}, status=200)
     
 
 class PasswordResetConfirmView(APIView):
