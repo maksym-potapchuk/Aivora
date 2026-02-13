@@ -15,7 +15,9 @@ dependencies = [
     "dotenv (>=0.9.9,<0.10.0)",
     "psycopg2 (>=2.9.11,<3.0.0)",
     "pillow (>=12.1.0,<13.0.0)",
-    "django-cors-headers (>=4.9.0,<5.0.0)"
+    "django-cors-headers (>=4.9.0,<5.0.0)",
+    "pytest-django (>=4.11.1,<5.0.0)",
+    "python-dotenv (>=1.2.1,<2.0.0)",
 ]
 
 [tool.poetry]
@@ -24,3 +26,8 @@ package-mode = false
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+django_find_project = false
+testpaths = ["core/tests"]
+addopts = ["-v", "--tb=short"]
