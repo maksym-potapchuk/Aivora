@@ -36,16 +36,16 @@ DOMAIN = "https://aiovora.com" if not DEBUG else f"http://{ALLOWED_HOSTS[0]}:{PO
 # Application definition
 
 INSTALLED_APPS = [
-    'rest_framework',
-    'core',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'corsheaders',
+    'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
+    'corsheaders',
+    'core',
 
 ]
 
